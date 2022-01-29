@@ -1,15 +1,28 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
-import { GestureHandlerRootView, GestureDetector, Gesture } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import {
+    GestureHandlerRootView,
+    GestureDetector,
+    Gesture,
+    PanGestureHandler,
+} from "react-native-gesture-handler";
+import Animated, {
+    useAnimatedGestureHandler,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from "react-native-reanimated";
 export default function App() {
     const isPressed = useSharedValue(false);
     const offset = useSharedValue({ x: 0, y: 0 });
+    const offsetX = useSharedValue(0);
+    const offsetY = useSharedValue(0);
     const animatedStyles = useAnimatedStyle(() => {
         return {
             transform: [
-                { translateX: offset.value.x },
-                { translateY: offset.value.y },
+                { translateX: offsetX.value },
+                { translateY: offsetY.value },
                 { scale: withSpring(isPressed.value ? 1.2 : 1) },
             ],
             backgroundColor: isPressed.value ? "yellow" : "blue",
@@ -17,32 +30,29 @@ export default function App() {
     });
 
     const start = useSharedValue({ x: 0, y: 0 });
-    const gesture = Gesture.Pan()
-        .onBegin(() => {
+
+    const gesture = useAnimatedGestureHandler({
+        onStart: () => {
             isPressed.value = true;
-        })
-        .onUpdate((e) => {
-            offset.value = {
-                x: e.translationX + start.value.x,
-                y: e.translationY + start.value.y,
-            };
-        })
-        .onEnd((e) => {
-            start.value = {
-                x: offset.value.x,
-                y: offset.value.y,
-            };
-        })
-        .onFinalize(() => {
+        },
+        onActive: (e) => {
+            offsetX.value = e.translationX;
+            offsetY.value = e.translationY;
+        },
+        onEnd: () => {
+            offsetX.value = withSpring(0, { damping: 5 });
+            offsetY.value = withSpring(0, { damping: 5 });
+
             isPressed.value = false;
-        });
+        },
+    });
     return (
         <GestureHandlerRootView style={styles.container}>
             <StatusBar style="auto" />
             <View style={styles.container}>
-                <GestureDetector gesture={gesture}>
+                <PanGestureHandler onGestureEvent={gesture}>
                     <Animated.View style={[styles.ball, animatedStyles]} />
-                </GestureDetector>
+                </PanGestureHandler>
             </View>
         </GestureHandlerRootView>
     );
