@@ -15,7 +15,6 @@ import Animated, {
 } from "react-native-reanimated";
 export default function App() {
     const isPressed = useSharedValue(false);
-    const offset = useSharedValue({ x: 0, y: 0 });
     const offsetX = useSharedValue(0);
     const offsetY = useSharedValue(0);
     const animatedStyles = useAnimatedStyle(() => {
@@ -28,8 +27,6 @@ export default function App() {
             backgroundColor: isPressed.value ? "yellow" : "blue",
         };
     });
-
-    const start = useSharedValue({ x: 0, y: 0 });
 
     const gesture = useAnimatedGestureHandler({
         onStart: () => {
