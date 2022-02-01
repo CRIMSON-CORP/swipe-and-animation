@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView, PanGestureHandler } from "react-native-gesture-handler";
 import Animated, {
+    runOnJS,
     useAnimatedGestureHandler,
     useAnimatedStyle,
     useSharedValue,
@@ -10,7 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Dimensions } from "react-native";
-import { View as MotiView } from "moti";
+import { AnimatePresence, Text as MotiText, View as MotiView } from "moti";
 export default function App() {
     const [Items, setItems] = useState([
         "lorem ipsum dolor madi1",
@@ -19,24 +20,51 @@ export default function App() {
         "lorem ipsum dolor madi4",
         "lorem ipsum dolor madi5",
     ]);
+
+    const deleter = (i) => {
+        setItems(Items.filter((item) => item !== i));
+    };
     return (
         <GestureHandlerRootView style={styles.container}>
             <SafeAreaView>
                 <Text style={styles.headerText}>Tasks</Text>
                 <View style={styles.listWraper}>
-                    {Items.map((item) => (
-                        <ListItem item={item} />
-                    ))}
+                    <AnimatePresence>
+                        {Items.map((item) => (
+                            <ListItem item={item} key={item} deleter={deleter} />
+                        ))}
+                        {Items.length == 0 && (
+                            <MotiText
+                                from={{
+                                    opacity: 0,
+                                    scale: 0.5,
+                                    marginBottom: -56,
+                                }}
+                                animate={{
+                                    opacity: 1,
+                                    scale: 1,
+                                    marginBottom: 0,
+                                }}
+                                style={{ textAlign: "center", fontSize: 24 }}
+                            >
+                                No Tasks for Now
+                            </MotiText>
+                        )}
+                    </AnimatePresence>
                 </View>
             </SafeAreaView>
         </GestureHandlerRootView>
     );
 }
-const shouldDelete_limit = -80;
-const { width: Window_width } = Dimensions.get("window");
-function ListItem({ item }) {
+
+function ListItem({ item, deleter }) {
     const XOFFSET = useSharedValue(0);
-    const Deleter = useSharedValue(0);
+
+    const shouldDelete_limit = -80;
+    const { width: Window_width } = Dimensions.get("window");
+    function swipeDelete() {
+        deleter(item);
+    }
 
     const gesture = useAnimatedGestureHandler({
         onActive: (e) => {
@@ -44,8 +72,7 @@ function ListItem({ item }) {
         },
         onEnd: (e) => {
             if (shouldDelete_limit > e.translationX) {
-                XOFFSET.value = withSpring(-Window_width);
-                Deleter.value = withSpring(0, { damping: 4 });
+                XOFFSET.value = withSpring(-Window_width, {}, runOnJS(swipeDelete)());
             } else {
                 XOFFSET.value = withSpring(0);
             }
@@ -55,40 +82,37 @@ function ListItem({ item }) {
     const AnimatedItem = useAnimatedStyle(() => ({
         transform: [{ translateX: XOFFSET.value }],
     }));
-    const wrapper = useAnimatedStyle(() => ({
-        height: withSpring(Deleter.value),
-    }));
     return (
-        <PanGestureHandler onGestureEvent={gesture}>
-            <MotiView
-                style={[styles.listWraper, wrapper]}
-                from={{
-                    opacity: 0,
-                    scale: 0.5,
-                    marginBottom: -46,
-                }}
-                animate={{
-                    opacity: 1,
-                    scale: 1,
-                    marginBottom: 0,
-                }}
-                exit={{
-                    opacity: 0,
-                    scale: 0.5,
-                    marginBottom: -46,
-                }}
-            >
-                <View style={styles.back}>
-                    <MaterialIcons name="delete" color={"white"} size={26} />
-                </View>
-                <Animated.View style={[styles.item, styles.front, AnimatedItem]}>
-                    <Text style={styles.item_text}>{item}</Text>
-                </Animated.View>
-            </MotiView>
-        </PanGestureHandler>
+        <MotiView
+            from={{
+                opacity: 0,
+                scale: 0.5,
+                marginBottom: -52,
+            }}
+            animate={{
+                opacity: 1,
+                scale: 1,
+                marginBottom: 10,
+            }}
+            exit={{
+                opacity: 0,
+                scale: 0.5,
+                marginBottom: -52,
+            }}
+        >
+            <PanGestureHandler onGestureEvent={gesture}>
+                <MotiView>
+                    <View style={styles.back}>
+                        <MaterialIcons name="delete" color={"white"} size={26} />
+                    </View>
+                    <Animated.View style={[styles.item, styles.front, AnimatedItem]}>
+                        <Text style={styles.item_text}>{item}</Text>
+                    </Animated.View>
+                </MotiView>
+            </PanGestureHandler>
+        </MotiView>
     );
 }
-
 const BORDER_RADIUS = 10;
 
 const styles = StyleSheet.create({
@@ -103,6 +127,10 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     listWraper: {
+        marginVertical: 30,
+    },
+    item_wrapper: {
+        position: "relative",
         marginBottom: 10,
     },
     item: {
