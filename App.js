@@ -8,22 +8,30 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import Animated, {
+    Easing,
     Extrapolate,
     interpolate,
     useAnimatedStyle,
     useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withSpring,
     withTiming,
 } from "react-native-reanimated";
-import { transform } from "react-native/Libraries/Components/View/ReactNativeStyleAttributes";
 
 export default function App() {
     const [Animation, setAnimation] = useState(false);
-    const Shared = useSharedValue(0);
+    const Wrapper_Shared = useSharedValue(0);
+    const Wrapper_Shared_rotate = useSharedValue(0);
+
     useEffect(() => {
         if (Animation) {
-            Shared.value = withTiming(1);
+            Wrapper_Shared.value = withSpring(1);
+            Wrapper_Shared_rotate.value = withSpring(0);
         } else {
-            Shared.value = withTiming(0);
+            Wrapper_Shared.value = withSpring(0);
+            Wrapper_Shared_rotate.value = withSpring(-30);
         }
     }, [Animation]);
 
@@ -32,27 +40,54 @@ export default function App() {
             transform: [
                 { translateX: 250 * 0.8 },
                 { translateY: 250 * 0.8 },
-                { scale: interpolate(Shared.value, [0, 1], [0.4, 1], Extrapolate.CLAMP) },
+                { scale: interpolate(Wrapper_Shared.value, [0, 1], [0.4, 1]) },
+                { rotate: Wrapper_Shared_rotate.value + "deg" },
                 { translateX: -250 * 0.8 },
                 { translateY: -250 * 0.8 },
-                {},
             ],
-            opacity: Shared.value,
+            opacity: Wrapper_Shared.value,
         };
     });
 
     return (
         <View style={styles.container}>
             <Animated.View style={[styles.bubble_Wrapper, Wrapper_Animation_Styles]}>
-                <View style={styles.inner_dots}></View>
-                <View style={styles.inner_dots}></View>
-                <View style={styles.inner_dots}></View>
+                {Animation &&
+                    [1, 2, 3].map((_, index) => <Dot index={index} anim={Animation} key={index} />)}
             </Animated.View>
             <TouchableOpacity style={styles.button_Text} onPress={() => setAnimation(!Animation)}>
                 <Text style={styles.text}>{Animation ? "Stop" : "Start"}</Text>
             </TouchableOpacity>
         </View>
     );
+}
+
+function Dot({ index, anim }) {
+    const inner_opacity_shared = useSharedValue(0);
+    const inner_opacity_shared_transform = useSharedValue(0);
+    useEffect(() => {
+        if (anim) {
+            inner_opacity_shared.value = withDelay(300, withTiming(1));
+            inner_opacity_shared_transform.value = withDelay(
+                index * 100,
+                withRepeat(
+                    withSequence(
+                        withTiming(-20, { easing: Easing.out(Easing.quad) }),
+                        withTiming(0, { easing: Easing.in(Easing.quad) })
+                    ),
+                    -1
+                )
+            );
+        } else {
+            inner_opacity_shared.value = withDelay(300, withTiming(0));
+        }
+    }, [anim]);
+    const inner_Animation = useAnimatedStyle(() => ({
+        opacity: inner_opacity_shared.value,
+        transform: [{ translateY: inner_opacity_shared_transform.value }],
+    }));
+
+    return <Animated.View style={[styles.inner_dots, inner_Animation]}></Animated.View>;
 }
 const Dimension = 250;
 const styles = StyleSheet.create({
