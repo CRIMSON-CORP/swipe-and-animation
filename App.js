@@ -9,6 +9,7 @@ import {
     RefreshControl,
     ScrollViewBase,
     ScrollView,
+    Image,
 } from "react-native";
 import {
     Extrapolate,
@@ -22,6 +23,7 @@ import Animated, { interpolate } from "react-native-reanimated";
 const spacing = 20;
 
 const Height = 126;
+const AnScroll = Animated.createAnimatedComponent(ScrollView);
 export default function App() {
     const [refresh, setRefresh] = useState(false);
     const data = Array.from(Array(20).keys());
@@ -32,10 +34,14 @@ export default function App() {
         }
     }, [refresh]);
 
-    const AnScroll = Animated.createAnimatedComponent(ScrollView);
-
     return (
         <Animated.View style={[styles.container]}>
+            <Image
+                source={require("./assets/bg.jpg")}
+                resizeMode="cover"
+                blurRadius={20}
+                style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
+            />
             <AnScroll
                 onScroll={(e) => {
                     scrollTop_Shared.value = e.nativeEvent.contentOffset.y;
@@ -50,7 +56,13 @@ export default function App() {
                     />
                 }
             >
-                <Animated.View>
+                <Animated.View
+                    style={{
+                        padding: spacing,
+                        paddingTop: StatusBar.currentHeight + 30,
+                        backgroundColor: "#ffffff88",
+                    }}
+                >
                     {data.map((_, index) => {
                         return <Card key={index} index={index} shared={scrollTop_Shared} />;
                     })}
@@ -70,6 +82,7 @@ function Card({ index, shared }) {
                 scale: interpolate(shared.value, interpolate_arr, [1, 1, 0.4]),
             },
         ],
+        opacity: interpolate(shared.value, interpolate_arr, [1, 1, 0]),
     }));
     return (
         <Animated.View
@@ -80,14 +93,30 @@ function Card({ index, shared }) {
                     padding: 20,
                     borderRadius: 10,
                     elevation: 10,
-                    backgroundColor: "white",
+                    backgroundColor: "#ffffff",
+                    flexDirection: "row",
+                    alignItems: "center",
                 },
                 flat,
             ]}
         >
-            <Text style={{ fontWeight: "600", fontSize: 24 }}>Lorem</Text>
-            <Text style={{ fontWeight: "400", fontSize: 16 }}>Lorem ipsum</Text>
-            <Text style={{ fontWeight: "600", fontSize: 14 }}>Lorem@ipsum</Text>
+            <Image
+                source={require("./assets/bg.jpg")}
+                resizeMode="cover"
+                style={[
+                    {
+                        width: 60,
+                        height: 60,
+                        borderRadius: 60,
+                        marginRight: spacing,
+                    },
+                ]}
+            />
+            <View>
+                <Text style={{ fontWeight: "600", fontSize: 24 }}>Lorem</Text>
+                <Text style={{ fontWeight: "400", fontSize: 16 }}>Lorem ipsum</Text>
+                <Text style={{ fontWeight: "600", fontSize: 14 }}>Lorem@ipsum</Text>
+            </View>
         </Animated.View>
     );
 }
@@ -95,9 +124,7 @@ function Card({ index, shared }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff",
-
-        paddingTop: StatusBar.currentHeight,
+        backgroundColor: "white",
     },
     ball: {
         width: 100,
