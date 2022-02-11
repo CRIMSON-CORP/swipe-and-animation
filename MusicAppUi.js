@@ -23,23 +23,36 @@ export default function MusicAppUi() {
 
     const [Index, setIndex] = useState(0);
     const sharedX = useSharedValue(0);
-    const swipeDetermine = -windowWidth * 0.2;
+    const sharedScale = useSharedValue(0);
+    const swipeDetermine = windowWidth * 0.3;
     const gesture = useAnimatedGestureHandler({
         onStart: () => {
             sharedX.value = 0;
         },
         onActive: (e, ctx) => {
             sharedX.value = e.translationX;
+            sharedScale.value = e.translationX;
             console.log(e.translationX);
         },
         onFinish: (e, ctx) => {
             // sharedX.value = withSpring(0);
-            if (e.translationX > swipeDetermine) sharedX.value = withSpring(0);
-            else if (e.translationX < -swipeDetermine) {
+            if (e.translationX > swipeDetermine) {
+                sharedX.value = withTiming(windowWidth, null, () => {
+                    runOnJS(setIndex)(Index - 1);
+                    sharedX.value = 0;
+                });
+                sharedScale.value = withTiming(windowWidth);
+            }
+            if (e.translationX > -swipeDetermine) {
+                sharedX.value = withSpring(0);
+                sharedScale.value = withSpring(0);
+            }
+            if (e.translationX < -swipeDetermine) {
                 sharedX.value = withTiming(-windowWidth, null, () => {
                     runOnJS(setIndex)(Index + 1);
                     sharedX.value = 0;
                 });
+                sharedScale.value = withTiming(-windowWidth);
             }
         },
     });
@@ -62,6 +75,7 @@ export default function MusicAppUi() {
                                             index={index}
                                             CardIndex={Index}
                                             sharedX={sharedX}
+                                            sharedScale={sharedScale}
                                         />
                                     );
                                 })}
@@ -103,7 +117,7 @@ function ImageAbs({ image, index, CardIndex }) {
     );
 }
 
-function SliderImageCard({ item, CardIndex, index, sharedX }) {
+function SliderImageCard({ item, CardIndex, index, sharedX, sharedScale }) {
     let translation = useMemo(
         () => (CardIndex >= index ? 0 : CardIndex < index ? windowWidth : 0),
         [CardIndex]
@@ -116,13 +130,15 @@ function SliderImageCard({ item, CardIndex, index, sharedX }) {
                         ? 0
                         : CardIndex + 1 === index
                         ? sharedX.value + windowWidth
+                        : CardIndex === index
+                        ? Math.max(0, sharedX.value)
                         : translation,
             },
             {
                 scale:
                     CardIndex >= index
                         ? interpolate(
-                              sharedX.value,
+                              sharedScale.value,
                               [windowWidth, 0, -windowWidth],
                               [0.8, 1, 0.8],
                               Extrapolate.CLAMP
